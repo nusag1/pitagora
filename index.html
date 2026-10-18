@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ピタゴラ工房</title>
+<meta name="description" content="板・ドミノ・バネを置いて、玉をゴールまで運ぶ「装置」を作る物理パズル">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+/* カッターマットの作業台：上にお題、まん中に装置（方眼のマット）、下に部品箱。動かすと方眼が消えて「本番」になる */
+:root {
+  --bg: #e8eee6;
+  --mat: #cfe4d4;
+  --mat-line: #b4d0bb;
+  --surface: #ffffff;
+  --ink: #1f2a24;
+  --muted: #56645b;
+  --line: #c8d6cb;
+  --acc: #e0623a;
+  --acc-ink: #ffffff;
+  --gold: #e3a21a;
+  --wall: #4a5a50;
+  --ok: #2f8a55;
+  --shadow: 0 8px 24px rgba(30, 50, 40, .12);
+  --f-disp: "Mochiy Pop One", "Hiragino Maru Gothic ProN", sans-serif;
+  --f-body: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121915; --mat: #17271d; --mat-line: #223a2b; --surface: #1b231e; --ink: #e5ede7; --muted: #9fb0a5; --line: #2c3a31;
+    --acc: #f0805c; --gold: #f0b840; --wall: #8fa197; --ok: #6cc591; --shadow: 0 8px 24px rgba(0, 0, 0, .45); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121915; --mat: #17271d; --mat-line: #223a2b; --surface: #1b231e; --ink: #e5ede7; --muted: #9fb0a5; --line: #2c3a31;
+  --acc: #f0805c; --gold: #f0b840; --wall: #8fa197; --ok: #6cc591; --shadow: 0 8px 24px rgba(0, 0, 0, .45); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6; }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.wrap { max-width: 1000px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { padding-block: 16px 6px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+h1 { font-family: var(--f-disp); font-weight: 400; font-size: 26px; margin: 0; letter-spacing: .04em; }
+.stages { display: flex; gap: 6px; flex-wrap: wrap; }
+.st { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 4px 10px; cursor: pointer; font-size: 13px; display: flex; gap: 4px; align-items: center; }
+.st[aria-current="true"] { border-color: var(--acc); color: var(--acc); font-weight: 700; }
+.st .stars { color: var(--gold); letter-spacing: -1px; font-size: 11px; }
+main { padding-block: 6px 50px; display: flex; flex-direction: column; gap: 12px; }
+.brief { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+.brief h2 { margin: 0; font-family: var(--f-disp); font-weight: 400; font-size: 20px; }
+.brief p { margin: 0; color: var(--muted); max-width: 70ch; }
+.stage { position: relative; background: var(--mat); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); touch-action: none; }
+.stage canvas { display: block; width: 100%; height: auto; }
+.banner { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); background: var(--surface); border-radius: 16px; padding: 16px 26px; text-align: center; box-shadow: var(--shadow); min-width: 240px; }
+.banner b { font-family: var(--f-disp); font-weight: 400; font-size: 26px; color: var(--acc); display: block; }
+.banner .big { font-size: 30px; color: var(--gold); letter-spacing: 4px; }
+.banner .row { justify-content: center; margin-top: 8px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn { border: 1px solid var(--acc); background: var(--acc); color: var(--acc-ink); border-radius: 12px; padding: 8px 16px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.btn.ghost { background: var(--surface); color: var(--acc); }
+.btn.quiet { background: var(--surface); color: var(--muted); border-color: var(--line); font-weight: 500; }
+.btn:disabled { opacity: .45; cursor: default; }
+.go { font-size: 17px; padding: 10px 22px; }
+.tray { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tray h3 { margin: 0 6px 0 2px; font-size: 12px; letter-spacing: .14em; color: var(--muted); }
+.part { border: 1px solid var(--line); background: var(--bg); border-radius: 12px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.part[aria-pressed="true"] { border-color: var(--acc); background: color-mix(in srgb, var(--acc) 12%, var(--surface)); }
+.part:disabled { opacity: .4; cursor: default; }
+.part .ic { width: 36px; height: 20px; display: grid; place-items: center; }
+.part .n { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+.sel { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.note { font-size: 13px; color: var(--muted); margin: 0; }
+footer { color: var(--muted); font-size: 12px; padding-block: 0 30px; }
+@media (max-width: 600px) { h1 { font-size: 22px; } .sel { margin-left: 0; } }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1>ピタゴラ工房</h1>
+  <nav class="stages" id="stages" aria-label="ステージ"></nav>
+</header>
+<main class="wrap">
+  <div class="brief"><h2 id="title"></h2><p id="desc"></p></div>
+  <div class="stage" id="stage">
+    <canvas id="cv" width="900" height="560" aria-label="装置を作るマット"></canvas>
+    <div class="banner" id="banner" hidden></div>
+  </div>
+  <div class="bar">
+    <button class="btn go" id="go">▶ スタート</button>
+    <button class="btn quiet" id="reset">もどす</button>
+    <button class="btn quiet" id="clear">ぜんぶ片づける</button>
+    <span style="flex:1"></span>
+    <button class="btn quiet" id="sample">見本を見る</button>
+  </div>
+  <div class="tray" id="tray"></div>
+  <p class="note" id="hint">スマホは横向きがおすすめです。部品をえらんで、マットをタップすると置けます。置いた部品はドラッグで動かせて、えらんで「回す」で角度を変えられます。</p>
+</main>
+<footer class="wrap">物理の計算には Matter.js を使っています。記録はこのブラウザの中にだけ残ります。</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script src="core.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const { W, H, PARTS, STAGES } = Pita;
+const cv = $('#cv'), g = cv.getContext('2d');
+const S = { stage: STAGES[0], placed: [], sel: null, tool: null, mode: 'edit', sim: null, drag: null, rec: {} };
+try { S.rec = JSON.parse(localStorage.getItem('pita-rec') || '{}'); } catch (e) { }
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+// ---------- 音 ----------
+let AC = null;
+const ac = () => { if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); return AC; };
+function beep(f, d = 0.12, type = 'triangle', vol = 0.15, at = 0) { try { const c = ac(), o = c.createOscillator(), gn = c.createGain(), t = c.currentTime + at; o.type = type; o.frequency.value = f; gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(0.001, t + d); o.connect(gn).connect(c.destination); o.start(t); o.stop(t + d + 0.02); } catch (e) { } }
+const bell = () => { [1320, 1760, 2640].forEach((f, i) => beep(f, 1.4, 'sine', 0.12 / (i + 1))); };
+const clack = () => beep(220 + Math.random() * 80, 0.05, 'square', 0.05);
+const boing = () => { try { const c = ac(), o = c.createOscillator(), gn = c.createGain(), t = c.currentTime; o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(700, t + 0.18); gn.gain.setValueAtTime(0.15, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.25); o.connect(gn).connect(c.destination); o.start(t); o.stop(t + 0.3); } catch (e) { } };
+
+// ---------- 画面 ----------
+function stars(id) { const r = S.rec[id]; return r ? '★'.repeat(r) + '☆'.repeat(3 - r) : ''; }
+function renderStages() {
+  $('#stages').innerHTML = STAGES.map((s, i) => `<button class="st" data-st="${s.id}" aria-current="${s === S.stage}">${s.free ? '自由' : i + 1}<span class="stars">${stars(s.id)}</span></button>`).join('');
+}
+function left(k) { return (S.stage.parts[k] || 0) - S.placed.filter(p => p.k === k).length; }
+function renderTray() {
+  const ks = Object.keys(S.stage.parts);
+  $('#tray').innerHTML = `<h3>部品箱</h3>${ks.map(k => `<button class="part" data-tool="${k}" aria-pressed="${S.tool === k}" ${left(k) <= 0 || S.mode !== 'edit' ? 'disabled' : ''}><span class="ic">${icon(k)}</span>${PARTS[k].l}<span class="n">${S.stage.free ? '' : '×' + left(k)}</span></button>`).join('')}
+    <div class="sel">${S.sel && S.mode === 'edit' ? `${S.sel.k !== 'ball' ? '<button class="btn quiet" data-rot="-1">↺ 回す</button><button class="btn quiet" data-rot="1">↻ 回す</button>' : ''}<button class="btn quiet" data-del>しまう</button>` : ''}</div>`;
+}
+function icon(k) {
+  const P = PARTS[k];
+  if (P.r) return `<svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="${P.color}"/></svg>`;
+  const w = Math.min(34, P.w / 5), h = Math.max(4, Math.min(18, P.h / 3.5));
+  return `<svg width="36" height="20" viewBox="0 0 36 20"><rect x="${18 - w / 2}" y="${10 - h / 2}" width="${w}" height="${h}" rx="2" fill="${P.color}"/></svg>`;
+}
+function loadStage(s) {
+  S.stage = s; S.placed = []; S.sel = null; S.tool = null; S.mode = 'edit'; S.sim = null;
+  try { const saved = JSON.parse(localStorage.getItem('pita-placed-' + s.id) || 'null'); if (Array.isArray(saved)) S.placed = saved.filter(p => PARTS[p.k]); } catch (e) { }
+  $('#title').textContent = (s.free ? '' : `ステージ${STAGES.indexOf(s) + 1}　`) + s.t;
+  $('#desc').textContent = s.d;
+  $('#sample').hidden = !s.sol;
+  $('#banner').hidden = true;
+  renderStages(); renderTray(); setMode('edit');
+}
+function savePlaced() { try { localStorage.setItem('pita-placed-' + S.stage.id, JSON.stringify(S.placed)); } catch (e) { } }
+
+// ---------- 描画 ----------
+function rr(x, y, w, h, a, fill, r = 3) { g.save(); g.translate(x, y); g.rotate(a || 0); g.fillStyle = fill; g.beginPath(); g.roundRect ? g.roundRect(-w / 2, -h / 2, w, h, r) : g.rect(-w / 2, -h / 2, w, h); g.fill(); g.restore(); }
+function drawBell(x, y, rung) {
+  g.strokeStyle = css('--wall'); g.lineWidth = 2; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, y - 20); g.stroke();
+  const sw = rung ? Math.sin(performance.now() / 60) * 0.35 : 0;
+  g.save(); g.translate(x, y - 20); g.rotate(sw);
+  g.fillStyle = css('--gold'); g.beginPath(); g.moveTo(-6, 0); g.quadraticCurveTo(-8, 18, -22, 34); g.lineTo(22, 34); g.quadraticCurveTo(8, 18, 6, 0); g.closePath(); g.fill();
+  g.beginPath(); g.arc(0, 38, 5, 0, Math.PI * 2); g.fill(); g.restore();
+}
+function drawCup(x, y, won) {
+  const c = css('--wall');
+  rr(x, y + 26, 96, 12, 0, c, 2); rr(x - 48, y, 10, 64, 0, c, 2); rr(x + 48, y, 10, 64, 0, c, 2);
+  g.fillStyle = won ? css('--gold') : 'rgba(224,98,58,.15)'; g.fillRect(x - 42, y - 6, 84, 26);
+  g.fillStyle = css('--muted'); g.font = '12px "Zen Maru Gothic", sans-serif'; g.textAlign = 'center'; g.fillText('ゴール', x, y - 40);
+}
+function drawPart(p, x, y, a, hl) {
+  const P = PARTS[p.k];
+  if (P.r) { g.fillStyle = P.color; g.beginPath(); g.arc(x, y, P.r, 0, Math.PI * 2); g.fill(); g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 2; g.beginPath(); g.arc(x - 5, y - 5, P.r * 0.45, Math.PI, Math.PI * 1.6); g.stroke(); }
+  else if (p.k === 'spring') {
+    rr(x, y, P.w, P.h, a, P.color, 4);
+    g.save(); g.translate(x, y); g.rotate(a); g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); for (let i = -28; i <= 28; i += 8) { g.moveTo(i, -4); g.lineTo(i + 4, 4); } g.stroke(); g.restore();
+  } else rr(x, y, P.w, P.h, a, P.color, 3);
+  if (hl) { g.save(); g.translate(x, y); g.rotate(a || 0); g.strokeStyle = css('--acc'); g.setLineDash([5, 4]); g.lineWidth = 2; const w = (P.w || P.r * 2) + 10, h = (P.h || P.r * 2) + 10; g.strokeRect(-w / 2, -h / 2, w, h); g.restore(); }
+}
+function draw() {
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = css('--mat'); g.fillRect(0, 0, W, H);
+  if (S.mode === 'edit') { g.strokeStyle = css('--mat-line'); g.lineWidth = 1; g.beginPath(); for (let x = 0; x <= W; x += 30) { g.moveTo(x + .5, 0); g.lineTo(x + .5, H); } for (let y = 0; y <= H; y += 30) { g.moveTo(0, y + .5); g.lineTo(W, y + .5); } g.stroke(); }
+  const s = S.stage, won = S.sim && S.sim.won;
+  const wc = css('--wall');
+  for (const [x, y, w, h, a] of s.fixed) rr(x, y, w, h, a, wc, 2);
+  g.fillStyle = wc; g.fillRect(0, H - 4, W, 4);
+  if (s.goal.type === 'cup') drawCup(s.goal.x, s.goal.y, won); else drawBell(s.goal.x, s.goal.y, won);
+  if (S.sim) {
+    for (const b of S.sim.engine.world.bodies) {
+      if (b === S.sim.ball || b.label === 'goal' || (b.isStatic && !b.part)) continue;
+      if (b.part) drawPart(b.part, b.position.x, b.position.y, b.angle);
+      else if (b.label === 'box') rr(b.position.x, b.position.y, 44, 44, b.angle, '#8a6a4a', 4);
+    }
+    const B = S.sim.ball; g.fillStyle = css('--acc'); g.beginPath(); g.arc(B.position.x, B.position.y, S.stage.ball.r, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 2; g.beginPath(); g.moveTo(B.position.x, B.position.y); g.lineTo(B.position.x + Math.cos(B.angle) * S.stage.ball.r, B.position.y + Math.sin(B.angle) * S.stage.ball.r); g.stroke();
+  } else {
+    for (const [x, y, w, h] of s.boxes || []) rr(x, y, w, h, 0, '#8a6a4a', 4);
+    for (const p of S.placed) drawPart(p, p.x, p.y, p.a, p === S.sel);
+    g.fillStyle = css('--acc'); g.beginPath(); g.arc(s.ball.x, s.ball.y, s.ball.r, 0, Math.PI * 2); g.fill();
+    // スタートの向き
+    g.strokeStyle = css('--acc'); g.lineWidth = 2; g.beginPath(); const dx = Math.sign(s.ball.vx) * 26; g.moveTo(s.ball.x + dx * 0.6, s.ball.y - 26); g.lineTo(s.ball.x + dx * 1.3, s.ball.y - 26); g.lineTo(s.ball.x + dx * 1.05, s.ball.y - 32); g.stroke();
+    if (S.ghost) { g.globalAlpha = S.ghost.ok ? 0.6 : 0.3; drawPart(S.ghost, S.ghost.x, S.ghost.y, S.ghost.a); g.globalAlpha = 1; if (!S.ghost.ok) { g.fillStyle = '#d33'; g.font = '13px sans-serif'; g.textAlign = 'center'; g.fillText('ここには置けません', S.ghost.x, S.ghost.y - 30); } }
+  }
+}
+
+// ---------- 編集（置く・動かす・回す） ----------
+function toWorld(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; }
+function hit(pt) {
+  for (let i = S.placed.length - 1; i >= 0; i--) {
+    const p = S.placed[i], P = PARTS[p.k];
+    if (P.r) { if (Math.hypot(pt.x - p.x, pt.y - p.y) < P.r + 8) return p; continue; }
+    const c = Math.cos(-p.a), s = Math.sin(-p.a), dx = pt.x - p.x, dy = pt.y - p.y, u = dx * c - dy * s, v = dx * s + dy * c;
+    if (Math.abs(u) < P.w / 2 + 8 && Math.abs(v) < P.h / 2 + 10) return p;
+  }
+  return null;
+}
+const snap = v => Math.round(v / 5) * 5;
+cv.addEventListener('pointerdown', e => {
+  if (S.mode !== 'edit') return;
+  ac();
+  const pt = toWorld(e), h = hit(pt);
+  if (h) { S.sel = h; S.tool = null; S.drag = { p: h, ox: h.x - pt.x, oy: h.y - pt.y, x0: h.x, y0: h.y }; cv.setPointerCapture(e.pointerId); renderTray(); draw(); return; }
+  if (S.tool && left(S.tool) > 0) {
+    const p = { k: S.tool, x: snap(pt.x), y: snap(pt.y), a: S.tool === 'domino' || S.tool === 'ball' ? 0 : 0.3 };
+    if (S.tool === 'domino') p.y = snapDomino(p);
+    if (Pita.canPlace(S.stage, S.placed, p)) { S.placed.push(p); S.sel = p; clack(); savePlaced(); if (left(S.tool) <= 0) S.tool = null; }
+    else { S.ghost = { ...p, ok: false }; setTimeout(() => { S.ghost = null; draw(); }, 900); }
+    renderTray(); draw(); return;
+  }
+  S.sel = null; renderTray(); draw();
+});
+// ドミノは、置いた場所の真下の床・台の上に立てる
+function snapDomino(p) {
+  const P = PARTS.domino;
+  for (let y = Math.max(40, p.y - 40); y < H; y += 2) { if (!Pita.canPlace(S.stage, S.placed, { ...p, y: y + 3 })) return y; }
+  return H - 20 - P.h / 2 - 2;
+}
+cv.addEventListener('pointermove', e => {
+  if (S.mode !== 'edit') return;
+  const pt = toWorld(e);
+  if (S.drag) {
+    const p = S.drag.p, nx = snap(pt.x + S.drag.ox), ny = snap(pt.y + S.drag.oy), old = { x: p.x, y: p.y };
+    p.x = nx; p.y = ny; if (p.k === 'domino') p.y = snapDomino(p);
+    if (!Pita.canPlace(S.stage, S.placed, p)) { p.x = old.x; p.y = old.y; }
+    draw(); return;
+  }
+  if (S.tool) { const p = { k: S.tool, x: snap(pt.x), y: snap(pt.y), a: S.tool === 'domino' || S.tool === 'ball' ? 0 : 0.3 }; if (S.tool === 'domino') p.y = snapDomino(p); S.ghost = { ...p, ok: Pita.canPlace(S.stage, S.placed, p) }; draw(); }
+});
+cv.addEventListener('pointerup', () => { if (S.drag) { S.drag = null; savePlaced(); } });
+cv.addEventListener('pointerleave', () => { if (!S.drag && S.ghost && S.ghost.ok) { S.ghost = null; draw(); } });
+$('#tray').addEventListener('click', e => {
+  const t = e.target.closest('[data-tool]'), r = e.target.closest('[data-rot]'), d = e.target.closest('[data-del]');
+  if (t) { S.tool = S.tool === t.dataset.tool ? null : t.dataset.tool; S.sel = null; S.ghost = null; renderTray(); draw(); }
+  if (r && S.sel) { const old = S.sel.a; S.sel.a = Math.round((S.sel.a + 0.1 * r.dataset.rot) * 100) / 100; if (!Pita.canPlace(S.stage, S.placed, S.sel)) S.sel.a = old; else clack(); savePlaced(); draw(); }
+  if (d && S.sel) { S.placed = S.placed.filter(p => p !== S.sel); S.sel = null; savePlaced(); renderTray(); draw(); }
+});
+addEventListener('keydown', e => {
+  if (S.mode !== 'edit' || !S.sel) return;
+  if (e.key === 'q' || e.key === 'Q') $('[data-rot="-1"]')?.click();
+  if (e.key === 'e' || e.key === 'E') $('[data-rot="1"]')?.click();
+  if (e.key === 'Delete' || e.key === 'Backspace') $('[data-del]')?.click();
+});
+
+// ---------- 動かす ----------
+let raf = 0, acc = 0, lastT = 0;
+function setMode(m) {
+  S.mode = m;
+  $('#go').textContent = m === 'run' ? '■ 止める' : '▶ スタート';
+  $('#clear').disabled = m !== 'edit';
+  $('#hint').hidden = m !== 'edit';
+  renderTray(); draw();
+}
+function start() {
+  ac();
+  S.sel = null; S.tool = null; S.ghost = null;
+  S.sim = Pita.build(Matter, S.stage, S.placed.map(p => ({ ...p })));
+  let springN = 0;
+  Matter.Events.on(S.sim.engine, 'collisionStart', ev => { for (const pr of ev.pairs) { const L = [pr.bodyA.label, pr.bodyB.label]; if (L.includes('domino')) clack(); } });
+  Pita.begin(Matter, S.sim, S.stage);
+  setMode('run'); $('#banner').hidden = true;
+  acc = 0; lastT = performance.now(); cancelAnimationFrame(raf);
+  const loop = t => {
+    if (S.mode !== 'run') return;
+    acc += Math.min(100, t - lastT); lastT = t;
+    while (acc >= 1000 / 60) {
+      Pita.step(Matter, S.sim); acc -= 1000 / 60;
+      if (S.sim.hits.length > springN) { springN = S.sim.hits.length; boing(); }
+      if (S.sim.won && !S.sim.done) { S.sim.done = true; win(); }
+    }
+    if (S.sim.t > 30 && !S.sim.won && !S.sim.done) { S.sim.done = true; showBanner('<b>うーん、とどかなかった</b><span class="note">部品の場所や角度を変えて、もう一度</span><div class="row"><button class="btn" data-again>やりなおす</button></div>'); }
+    draw(); raf = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(loop);
+}
+function stop() { S.mode = 'edit'; cancelAnimationFrame(raf); S.sim = null; setMode('edit'); $('#banner').hidden = true; }
+function win() {
+  bell();
+  const s = S.stage, used = S.placed.length;
+  const best = s.sol ? s.sol.length : used;
+  const st = used <= best ? 3 : used <= best + 1 ? 2 : 1;
+  const prev = S.rec[s.id] || 0; if (st > prev) { S.rec[s.id] = st; try { localStorage.setItem('pita-rec', JSON.stringify(S.rec)); } catch (e) { } }
+  renderStages();
+  const i = STAGES.indexOf(s), next = STAGES[i + 1];
+  showBanner(`<b>クリア！</b><span class="big">${'★'.repeat(st)}${'☆'.repeat(3 - st)}</span><span class="note">使った部品 ${used} 個${st < 3 ? `（${best} 個でもクリアできます）` : ''}</span><div class="row"><button class="btn quiet" data-again>もう一度</button>${next ? `<button class="btn" data-next="${next.id}">次へ</button>` : ''}</div>`);
+}
+function showBanner(html) { const b = $('#banner'); b.innerHTML = html; b.hidden = false; }
+$('#banner').addEventListener('click', e => { if (e.target.closest('[data-again]')) stop(); const n = e.target.closest('[data-next]'); if (n) { stop(); loadStage(STAGES.find(s => s.id === n.dataset.next)); } });
+$('#go').addEventListener('click', () => S.mode === 'run' ? stop() : start());
+$('#reset').addEventListener('click', () => stop());
+$('#clear').addEventListener('click', e => { if (!e.currentTarget.classList.contains('armed')) { e.currentTarget.classList.add('armed'); e.currentTarget.textContent = 'もう一度押すと片づけます'; const b = e.currentTarget; setTimeout(() => { b.classList.remove('armed'); b.textContent = 'ぜんぶ片づける'; }, 3000); return; } S.placed = []; S.sel = null; savePlaced(); e.currentTarget.classList.remove('armed'); e.currentTarget.textContent = 'ぜんぶ片づける'; renderTray(); draw(); });
+$('#sample').addEventListener('click', () => { if (!S.stage.sol) return; stop(); S.placed = S.stage.sol.map(p => ({ ...p })); savePlaced(); renderTray(); draw(); showBanner('<b>見本の置き方</b><span class="note">▶ スタートで動かしてみよう。もっと少ない部品でできるかも？</span><div class="row"><button class="btn" data-again>とじる</button></div>'); });
+$('#stages').addEventListener('click', e => { const b = e.target.closest('[data-st]'); if (b) { stop(); loadStage(STAGES.find(s => s.id === b.dataset.st)); } });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+
+loadStage(STAGES[0]);
+window.PITA_UI = { S, start, stop, loadStage };
+</script>
+</body>
+</html>
