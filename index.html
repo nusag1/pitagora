@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ピタゴラ工房</title>
+<!-- pwa -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ピタゴラ工房">
+<meta name="theme-color" content="#c56a2d">
+<!-- /pwa -->
 <meta name="description" content="板・ドミノ・バネを置いて、玉をゴールまで運ぶ「装置」を作る物理パズル">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -313,5 +322,8 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 loadStage(STAGES[0]);
 window.PITA_UI = { S, start, stop, loadStage };
 </script>
+<!-- pwa -->
+<script>if ('serviceWorker' in navigator && location.protocol !== 'file:') addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+<!-- /pwa -->
 </body>
 </html>
